@@ -2,12 +2,10 @@ import * as THREE from "three";
 import gsap from "gsap";
 
 export default class MoveManager {
-  constructor(scene, camera, squares, onPlayerChange) {
+  constructor(scene, camera, squares) {
     this.scene = scene;
     this.camera = camera;
     this.squares = squares;
-    this.player = "White";
-    this.onPlayerChange = onPlayerChange;
     this.selectedPawn = null;
     this.selectedPawnSquare = null;
     this.selectedPawnSquareX = null;
@@ -35,10 +33,7 @@ export default class MoveManager {
       const hoveredObject = intersections[0].object;
 
       if (this.selectedPawn === null && hoveredObject.isPawn) {
-        if (
-          this.hoveredObject !== hoveredObject &&
-          this.isPawnPlayer(hoveredObject)
-        ) {
+        if (this.hoveredObject !== hoveredObject) {
           this.resetHover();
           this.hoveredObject = hoveredObject;
 
@@ -81,7 +76,7 @@ export default class MoveManager {
     if (intersections.length > 0 && this.canMove) {
       const selectedObject = intersections[0].object;
 
-      if (selectedObject.isPawn && this.isPawnPlayer(selectedObject)) {
+      if (selectedObject.isPawn) {
         if (this.selectedPawn === selectedObject) {
           this.clearAvailableMovesHighlight();
           this.resetPawn();
@@ -116,9 +111,7 @@ export default class MoveManager {
   }
 
   highlightAvailableMoves() {
-    const [type, availableMoves] = this.checkAvailableMoves(
-      this.selectedPawn.onSquareId
-    );
+    const availableMoves = this.checkAvailableMoves();
     availableMoves.forEach((square) => {
       gsap.to(square.material.color, {
         r: 0.2,
@@ -145,7 +138,6 @@ export default class MoveManager {
 
   checkAvailableMoves() {
     const availableMoves = [];
-    const availableCaptures = [];
 
     for (let y = 0; y < 8; y++) {
       for (let x = 0; x < 8; x++) {
@@ -154,7 +146,9 @@ export default class MoveManager {
 
         if (this.checkMove(square, deltaX, deltaY)) {
           if (deltaX === 2 && Math.abs(deltaY) === 2) {
-            availableCaptures.push(square);
+            if (this.checkPawnCapture(square)) {
+              availableMoves.push(square);
+            }
           } else if (!square.isOccupied) {
             availableMoves.push(square);
           }
@@ -162,9 +156,7 @@ export default class MoveManager {
       }
     }
 
-    return availableCaptures.length > 0
-      ? ["c", availableCaptures]
-      : ["m", availableMoves];
+    return availableMoves;
   }
 
   checkMove(square, deltaX, deltaY) {
@@ -274,10 +266,41 @@ export default class MoveManager {
       this.canMove = true;
 
       this.resetPawn();
+
+      // Check if the pawn should be promoted to a queen
+      const [targetY] = this.calculateSquarePosition(selectedObject.squareId);
+      if (
+        (this.selectedPawn.isWhite && targetY === 0) ||
+        (!this.selectedPawn.isWhite && targetY === 7)
+      ) {
+        const selectedPawnCopy = this.selectedPawn;
+        setTimeout(() => {
+          this.promoteToQueen(selectedPawnCopy);
+        }, 500);
+      }
+
       this.selectedPawn = null;
-      this.player = this.player === "White" ? "Black" : "White";
-      this.onPlayerChange(this.player);
     }, 500);
+  }
+
+  promoteToQueen(pawn) {
+    pawn.isQueen = true;
+    const queenColor = pawn.isWhite
+      ? new THREE.Color(0.3, 0.6, 1)
+      : new THREE.Color(1, 0.65, 0.2);
+    pawn.basicColor = {
+      r: queenColor.r,
+      g: queenColor.g,
+      b: queenColor.b,
+    };
+
+    // Ensure the material supports color changes
+    gsap.to(pawn.material.color, {
+      r: queenColor.r,
+      g: queenColor.g,
+      b: queenColor.b,
+      duration: 0.5,
+    });
   }
 
   calculateDelta(square) {
@@ -318,12 +341,5 @@ export default class MoveManager {
     const squareY = (squareId - squareX) / 8;
 
     return [squareY, squareX];
-  }
-
-  isPawnPlayer(pawn) {
-    return (
-      (this.player === "White" && pawn.isWhite) ||
-      (this.player === "Black" && !pawn.isWhite)
-    );
   }
 }
