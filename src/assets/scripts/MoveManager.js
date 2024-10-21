@@ -145,11 +145,15 @@ export default class MoveManager {
         const [deltaX, deltaY] = this.calculateDelta(square);
 
         if (this.checkMove(square, deltaX, deltaY)) {
-          if (deltaX === 2 && Math.abs(deltaY) === 2) {
-            if (this.checkPawnCapture(square)) {
+          if (!this.selectedPawn.isQueen) {
+            if (deltaX === 2 && Math.abs(deltaY) === 2) {
+              if (this.checkPawnCapture(square)) {
+                availableMoves.push(square);
+              }
+            } else if (!square.isOccupied) {
               availableMoves.push(square);
             }
-          } else if (!square.isOccupied) {
+          } else if (this.selectedPawn.isQueen) {
             availableMoves.push(square);
           }
         }
@@ -163,18 +167,28 @@ export default class MoveManager {
     if (this.selectedPawn) {
       if (!this.selectedPawn.isQueen) {
         if (
-          deltaX === 1 &&
+          Math.abs(deltaX) === 1 &&
           ((this.selectedPawn.isWhite && deltaY === -1) ||
             (!this.selectedPawn.isWhite && deltaY === 1))
-        )
+        ) {
           return true;
-        else if (deltaX === 2 && Math.abs(deltaY) === 2) {
+        } else if (Math.abs(deltaX) === 2 && Math.abs(deltaY) === 2) {
           if (this.checkPawnCapture(square)) {
             return true;
           }
-        } else return false;
+        } else {
+          return false;
+        }
+      } else if (this.selectedPawn.isQueen) {
+        if (Math.abs(deltaX) === Math.abs(deltaY) && !square.isOccupied) {
+          return true;
+        } else {
+          return false;
+        }
       }
-    } else return false;
+    } else {
+      return false;
+    }
   }
 
   checkPawnCapture(square) {
@@ -193,17 +207,61 @@ export default class MoveManager {
     } else return false;
   }
 
+  checkQueenCapture(selectedObject) {
+    console.log("Checking queen capture");
+    const [deltaX, deltaY] = this.calculateDelta(selectedObject);
+    const [selectedObjectY, selectedObjectX] = this.calculateSquarePosition(
+      selectedObject.squareId
+    );
+    const directionX = deltaX > 0 ? 1 : -1;
+    const directionY = deltaY > 0 ? 1 : -1;
+    let x = this.selectedPawnSquareX + directionX;
+    let y = this.selectedPawnSquareY + directionY;
+
+    console.log(directionX, directionY);
+
+    let pawns = [];
+
+    while (x !== selectedObjectX && y !== selectedObjectY) {
+      const square = this.squares[y][x];
+
+      if (square.isOccupied) {
+        if (square.occupyingPawn.isWhite !== this.selectedPawn.isWhite) {
+          pawns.push(square.occupyingPawn);
+        } else {
+          return false;
+        }
+      }
+      x += directionX;
+      y += directionY;
+    }
+
+    if (pawns.length === 1) {
+      return true, pawns[0];
+    }
+    return false;
+  }
+
   movePawn(selectedObject) {
     const [deltaX, deltaY] = this.calculateDelta(selectedObject);
 
     if (this.checkMove(selectedObject, deltaX, deltaY)) {
-      if (deltaX === 2 && Math.abs(deltaY) === 2) {
-        this.capturePawn(selectedObject);
-      } else this.executeMove(selectedObject);
+      if (!this.selectedPawn.isQueen) {
+        if (deltaX === 2 && Math.abs(deltaY) === 2) {
+          this.capturePawn(selectedObject);
+        } else this.executeMove(selectedObject);
+      } else if (this.selectedPawn.isQueen) {
+        const pawn = this.checkQueenCapture(selectedObject);
+        if (pawn) {
+          this.capturePawn(selectedObject, pawn);
+        } else {
+          this.executeMove(selectedObject);
+        }
+      }
     }
   }
 
-  capturePawn(targetSquare) {
+  capturePawn(targetSquare, pawn) {
     const [selectedPawnSquareY, selectedPawnSquareX] =
       this.calculateSquarePosition(this.selectedPawn.onSquareId);
 
@@ -216,10 +274,19 @@ export default class MoveManager {
       targetSquare.squareId
     );
 
-    const middleSquareX = (this.selectedPawnSquareX + targetX) / 2;
-    const middleSquareY = (this.selectedPawnSquareY + targetY) / 2;
+    let middleSquare;
 
-    const middleSquare = this.squares[middleSquareY][middleSquareX];
+    if (!this.selectedPawn.isQueen) {
+      const middleSquareX = (this.selectedPawnSquareX + targetX) / 2;
+      const middleSquareY = (this.selectedPawnSquareY + targetY) / 2;
+
+      middleSquare = this.squares[middleSquareY][middleSquareX];
+    } else {
+      const [pawnSquareY, pawnSquareX] = this.calculateSquarePosition(
+        pawn.onSquareId
+      );
+      middleSquare = this.squares[pawnSquareY][pawnSquareX];
+    }
 
     if (middleSquare.isOccupied) {
       gsap.to(middleSquare.occupyingPawn.material, {
@@ -267,7 +334,6 @@ export default class MoveManager {
 
       this.resetPawn();
 
-      // Check if the pawn should be promoted to a queen
       const [targetY] = this.calculateSquarePosition(selectedObject.squareId);
       if (
         (this.selectedPawn.isWhite && targetY === 0) ||
@@ -284,6 +350,8 @@ export default class MoveManager {
   }
 
   promoteToQueen(pawn) {
+    if (pawn.isQueen) return;
+
     pawn.isQueen = true;
     const queenColor = pawn.isWhite
       ? new THREE.Color(0.3, 0.6, 1)
@@ -294,7 +362,6 @@ export default class MoveManager {
       b: queenColor.b,
     };
 
-    // Ensure the material supports color changes
     gsap.to(pawn.material.color, {
       r: queenColor.r,
       g: queenColor.g,
@@ -309,7 +376,7 @@ export default class MoveManager {
       this.selectedPawn.onSquareId
     );
 
-    const deltaX = Math.abs(targetX - pawnSquareX);
+    const deltaX = targetX - pawnSquareX;
     const deltaY = targetY - pawnSquareY;
 
     return [deltaX, deltaY];
