@@ -4,7 +4,7 @@ import * as THREE from "three";
 import SceneInit from "./assets/scripts/inits/Sceneinit";
 import Board from "./assets/scripts/classes/Board";
 import { initializePawns } from "./assets/scripts/inits/PawnsInit";
-import MoveManager from "./assets/scripts/MoveManager";
+import MoveManager from "./assets/scripts/moveManagement/MoveManager";
 
 function App() {
 
