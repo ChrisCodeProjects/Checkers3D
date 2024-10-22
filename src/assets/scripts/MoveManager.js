@@ -181,7 +181,7 @@ export default class MoveManager {
         }
       } else if (this.selectedPawn.isQueen) {
         if (Math.abs(deltaX) === Math.abs(deltaY) && !square.isOccupied) {
-          return true;
+          if (this.checkQueenMove(square)) return true;
         } else {
           return false;
         }
@@ -189,6 +189,40 @@ export default class MoveManager {
     } else {
       return false;
     }
+  }
+
+  checkQueenMove(selectedObject) {
+    const [deltaX, deltaY] = this.calculateDelta(selectedObject);
+    const [selectedObjectY, selectedObjectX] = this.calculateSquarePosition(
+      selectedObject.squareId
+    );
+    const directionX = deltaX > 0 ? 1 : -1;
+    const directionY = deltaY > 0 ? 1 : -1;
+    let x = this.selectedPawnSquareX + directionX;
+    let y = this.selectedPawnSquareY + directionY;
+
+    let pawns = [];
+    let encounteredFriendly = false;
+
+    while (x !== selectedObjectX && y !== selectedObjectY) {
+      const square = this.squares[y][x];
+
+      if (square.isOccupied) {
+        if (square.occupyingPawn.isWhite !== this.selectedPawn.isWhite) {
+          pawns.push(square.occupyingPawn);
+        } else {
+          encounteredFriendly = true;
+        }
+      }
+      x += directionX;
+      y += directionY;
+    }
+
+    if (encounteredFriendly) return false;
+    else if (pawns.length === 0) return true;
+    else if (pawns.length === 1 && !selectedObject.isOccupied) {
+      return true;
+    } else return false;
   }
 
   checkPawnCapture(square) {
@@ -208,7 +242,6 @@ export default class MoveManager {
   }
 
   checkQueenCapture(selectedObject) {
-    console.log("Checking queen capture");
     const [deltaX, deltaY] = this.calculateDelta(selectedObject);
     const [selectedObjectY, selectedObjectX] = this.calculateSquarePosition(
       selectedObject.squareId
@@ -217,8 +250,6 @@ export default class MoveManager {
     const directionY = deltaY > 0 ? 1 : -1;
     let x = this.selectedPawnSquareX + directionX;
     let y = this.selectedPawnSquareY + directionY;
-
-    console.log(directionX, directionY);
 
     let pawns = [];
 
@@ -237,7 +268,7 @@ export default class MoveManager {
     }
 
     if (pawns.length === 1) {
-      return true, pawns[0];
+      return pawns[0];
     }
     return false;
   }
@@ -349,6 +380,27 @@ export default class MoveManager {
     }, 500);
   }
 
+  setPawn(selectedObject) {
+    this.resetHover();
+    gsap.to(selectedObject.material.color, {
+      r: 0.1,
+      g: 1,
+      b: 0.1,
+      duration: 0.2,
+    });
+    gsap.to(selectedObject.position, { y: 4, duration: 0.5 });
+  }
+
+  resetPawn() {
+    gsap.to(this.selectedPawn.material.color, {
+      r: this.selectedPawn.basicColor.r,
+      g: this.selectedPawn.basicColor.g,
+      b: this.selectedPawn.basicColor.b,
+      duration: 0.5,
+    });
+    gsap.to(this.selectedPawn.position, { y: 1.05, duration: 0.5 });
+  }
+
   promoteToQueen(pawn) {
     if (pawn.isQueen) return;
 
@@ -380,27 +432,6 @@ export default class MoveManager {
     const deltaY = targetY - pawnSquareY;
 
     return [deltaX, deltaY];
-  }
-
-  setPawn(selectedObject) {
-    this.resetHover();
-    gsap.to(selectedObject.material.color, {
-      r: 0.1,
-      g: 1,
-      b: 0.1,
-      duration: 0.2,
-    });
-    gsap.to(selectedObject.position, { y: 4, duration: 0.5 });
-  }
-
-  resetPawn() {
-    gsap.to(this.selectedPawn.material.color, {
-      r: this.selectedPawn.basicColor.r,
-      g: this.selectedPawn.basicColor.g,
-      b: this.selectedPawn.basicColor.b,
-      duration: 0.5,
-    });
-    gsap.to(this.selectedPawn.position, { y: 1.05, duration: 0.5 });
   }
 
   calculateSquarePosition(squareId) {
