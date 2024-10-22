@@ -278,7 +278,7 @@ export default class MoveManager {
 
     if (this.checkMove(selectedObject, deltaX, deltaY)) {
       if (!this.selectedPawn.isQueen) {
-        if (deltaX === 2 && Math.abs(deltaY) === 2) {
+        if (Math.abs(deltaX) === 2 && Math.abs(deltaY) === 2) {
           this.capturePawn(selectedObject);
         } else this.executeMove(selectedObject);
       } else if (this.selectedPawn.isQueen) {
