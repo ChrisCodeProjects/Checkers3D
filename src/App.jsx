@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import * as THREE from "three";
+import { useEffect } from "react";
 
 import SceneInit from "./assets/scripts/inits/Sceneinit";
 import Board from "./assets/scripts/classes/Board";

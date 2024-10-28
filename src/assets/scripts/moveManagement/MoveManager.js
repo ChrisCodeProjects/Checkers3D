@@ -290,6 +290,10 @@ export default class MoveManager {
         }
       }
     }
+    else{ 
+      this.resetPawn()
+      this.clearAvailableMovesHighlight();
+    };
   }
 
   capturePawn(targetSquare, pawn) {
