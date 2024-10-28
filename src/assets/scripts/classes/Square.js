@@ -7,6 +7,8 @@ export default class Square extends THREE.Mesh {
       color: color,
       side: THREE.DoubleSide,
       shininess: 100,
+      transparent: true,
+      opacity: 0
     });
 
     super(geometry, material);
@@ -17,7 +19,8 @@ export default class Square extends THREE.Mesh {
     this.occupyingPawn = null;
     this.defaultColor = new THREE.Color(color);
 
-    this.receiveShadow = true;
+    this.receiveShadow = false;
+    this.castShadow = false;
     this.rotation.x = -Math.PI / 2;
   }
 }

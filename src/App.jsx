@@ -12,7 +12,7 @@ function App() {
     init.initialize();
     init.animate();
 
-    const board = new Board();
+    const board = new Board(init.scene);
     board.initialize();
     init.scene.add(board.myBoard);
 
